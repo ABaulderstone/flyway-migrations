@@ -8,11 +8,12 @@ import org.hibernate.tool.hbm2ddl.SchemaExport;
 import org.hibernate.tool.hbm2ddl.SchemaUpdate;
 import org.hibernate.tool.schema.TargetType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
+
+import com.alex.flyway_migrations.user.entities.User;
 
 import jakarta.persistence.EntityManager;
 
@@ -72,11 +73,7 @@ public class MigrationGeneratorConfig {
                     .build();
 
             MetadataSources metadataSources = new MetadataSources(serviceRegistry);
-            System.out.println("ENTITY SIZE = " + entityManager.getMetamodel().getEntities().size());
-            entityManager.getMetamodel().getEntities().forEach(e -> System.out.println(e.getName()));
-
-            entityManager.getMetamodel().getEntities()
-                    .forEach(entityType -> metadataSources.addAnnotatedClass(entityType.getJavaType()));
+            metadataSources.addAnnotatedClass(User.class);
 
             Metadata metadata = metadataSources.buildMetadata();
 

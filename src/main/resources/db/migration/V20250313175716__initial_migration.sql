@@ -1,2 +1,0 @@
--- No schema changes detected between entity model and database.
--- This could mean your database is already up to date with the entity model.
