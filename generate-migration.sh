@@ -17,4 +17,4 @@ echo "Generating migration script: $DESCRIPTION (Mode: $MODE)"
 ./mvnw spring-boot:run \
   -Dspring-boot.run.profiles=dev \
   -Dspring-boot.run.main-class=com.alex.flyway_migrations.tools.migration.MigrationGeneratorApp \
-  -Dspring-boot.run.arguments="$DESCRIPTION, $MODE"
+  -Dspring-boot.run.arguments="$DESCRIPTION $MODE"
