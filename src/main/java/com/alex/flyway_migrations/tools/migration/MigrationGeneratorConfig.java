@@ -52,7 +52,7 @@ public class MigrationGeneratorConfig {
             MetadataSources metadata = new MetadataSources(
                     new StandardServiceRegistryBuilder()
                             .applySetting("hibernate.dialect",
-                                    env.getProperty("spring.jpa.properties.hibernate.dialect"))
+                                    env.getProperty("spring.jpa.properties.dialect"))
                             .build());
 
             entityManager.getMetamodel().getEntities()
