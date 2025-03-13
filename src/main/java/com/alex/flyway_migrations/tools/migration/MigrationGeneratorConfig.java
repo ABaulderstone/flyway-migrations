@@ -1,6 +1,8 @@
 package com.alex.flyway_migrations.tools.migration;
 
+import org.hibernate.boot.Metadata;
 import org.hibernate.boot.MetadataSources;
+import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.tool.hbm2ddl.SchemaUpdate;
 import org.hibernate.tool.schema.TargetType;
@@ -20,6 +22,9 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.EnumSet;
+import java.util.Properties;
+
+import javax.sql.DataSource;
 
 @Configuration
 public class MigrationGeneratorConfig {
@@ -29,6 +34,9 @@ public class MigrationGeneratorConfig {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private DataSource dataSource;
 
     @Bean
     @Profile("dev")
@@ -49,14 +57,23 @@ public class MigrationGeneratorConfig {
 
             Path filePath = migrationsDir.resolve(filename);
             File outputFile = filePath.toFile();
-            MetadataSources metadata = new MetadataSources(
-                    new StandardServiceRegistryBuilder()
-                            .applySetting("hibernate.dialect",
-                                    env.getProperty("spring.jpa.properties.dialect"))
-                            .build());
+
+            Properties hibernateProperties = new Properties();
+            hibernateProperties.put("hibernate.dialect", env.getProperty("spring.jpa.properties.dialect"));
+            hibernateProperties.put("hibernate.connection.datasource", dataSource);
+            hibernateProperties.put("hibernate.format_sql", "true");
+            hibernateProperties.put("hibernate.hbm2ddl.auto", "none");
+
+            StandardServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder()
+                    .applySettings(hibernateProperties)
+                    .build();
+
+            MetadataSources metadataSources = new MetadataSources(serviceRegistry);
 
             entityManager.getMetamodel().getEntities()
-                    .forEach(entityType -> metadata.addAnnotatedClass(entityType.getJavaType()));
+                    .forEach(entityType -> metadataSources.addAnnotatedClass(entityType.getJavaType()));
+
+            Metadata metadata = metadataSources.buildMetadata();
 
             try (FileWriter writer = new FileWriter(outputFile)) {
                 SchemaUpdate schemaUpdate = new SchemaUpdate();
@@ -64,7 +81,7 @@ public class MigrationGeneratorConfig {
                 schemaUpdate.setOutputFile(outputFile.getAbsolutePath());
                 schemaUpdate.execute(
                         EnumSet.of(TargetType.SCRIPT),
-                        metadata.buildMetadata());
+                        metadata);
             }
 
             return filePath.toString();

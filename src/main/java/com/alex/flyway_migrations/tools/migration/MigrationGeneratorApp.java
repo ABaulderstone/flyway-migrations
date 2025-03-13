@@ -25,7 +25,7 @@ public class MigrationGeneratorApp {
                 System.exit(1);
             }
 
-            String description = args[0];
+            String description = args[1];
             System.out.println("Generating migration for: " + description);
 
             try {
