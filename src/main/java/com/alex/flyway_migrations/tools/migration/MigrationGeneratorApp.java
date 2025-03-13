@@ -21,15 +21,23 @@ public class MigrationGeneratorApp {
             MigrationGeneratorConfig.MigrationGenerator generator) {
         return args -> {
             if (args.length < 1) {
-                System.out.println("Usage: generate-migration <description>");
+                System.out.println("Usage: generate-migration description_with_underscore [mode]");
                 System.exit(1);
             }
 
             String description = args[1];
+            String mode;
+
+            try {
+                mode = args[3];
+            } catch (Exception e) {
+                mode = null;
+            }
+
             System.out.println("Generating migration for: " + description);
 
             try {
-                String filePath = generator.generateMigration(description);
+                String filePath = generator.generateMigration(description, mode);
                 System.out.println("Migration generated successfully at: " + filePath);
             } catch (Exception e) {
                 System.err.println("Error generating migration: " + e.getMessage());

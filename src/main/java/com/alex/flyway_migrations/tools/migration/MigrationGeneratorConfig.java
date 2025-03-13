@@ -4,6 +4,7 @@ import org.hibernate.boot.Metadata;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
+import org.hibernate.tool.hbm2ddl.SchemaExport;
 import org.hibernate.tool.hbm2ddl.SchemaUpdate;
 import org.hibernate.tool.schema.TargetType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,8 @@ import org.springframework.core.env.Environment;
 
 import jakarta.persistence.EntityManager;
 
+import javax.sql.DataSource;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.nio.file.Files;
@@ -23,8 +26,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.EnumSet;
 import java.util.Properties;
-
-import javax.sql.DataSource;
 
 @Configuration
 public class MigrationGeneratorConfig {
@@ -46,7 +47,7 @@ public class MigrationGeneratorConfig {
 
     public class MigrationGenerator {
 
-        public String generateMigration(String description) throws Exception {
+        public String generateMigration(String description, String mode) throws Exception {
 
             Path migrationsDir = Paths.get("src/main/resources/db/migration");
             Files.createDirectories(migrationsDir);
@@ -74,17 +75,45 @@ public class MigrationGeneratorConfig {
                     .forEach(entityType -> metadataSources.addAnnotatedClass(entityType.getJavaType()));
 
             Metadata metadata = metadataSources.buildMetadata();
+            System.out.println("Database URL: " + env.getProperty("spring.datasource.url"));
+            System.out.println("Database Username: " + env.getProperty("spring.datasource.username"));
 
-            try (FileWriter writer = new FileWriter(outputFile)) {
+            if ("create".equalsIgnoreCase(mode)) {
+
+                SchemaExport schemaExport = new SchemaExport();
+                schemaExport.setFormat(true);
+                schemaExport.setOutputFile(outputFile.getAbsolutePath());
+                schemaExport.setDelimiter(";");
+                schemaExport.execute(EnumSet.of(TargetType.SCRIPT), SchemaExport.Action.CREATE, metadata);
+
+                System.out.println("Generated complete schema creation script.");
+            } else {
+
                 SchemaUpdate schemaUpdate = new SchemaUpdate();
                 schemaUpdate.setFormat(true);
                 schemaUpdate.setOutputFile(outputFile.getAbsolutePath());
-                schemaUpdate.execute(
-                        EnumSet.of(TargetType.SCRIPT),
-                        metadata);
+                schemaUpdate.setDelimiter(";");
+
+                // Print what would be updated
+                schemaUpdate.execute(EnumSet.of(TargetType.STDOUT, TargetType.SCRIPT), metadata);
+
+                System.out.println("Generated incremental schema update script.");
+            }
+
+            // Check if file is empty and add a note if it is
+            if (Files.size(filePath) == 0) {
+                try (FileWriter writer = new FileWriter(outputFile)) {
+                    writer.write("-- No schema changes detected between entity model and database.\n");
+                    writer.write("-- This could mean your database is already up to date with the entity model.\n");
+                }
+                System.out.println("No schema differences detected. Added explanatory comment to file.");
             }
 
             return filePath.toString();
+        }
+
+        public String generateMigration(String description) throws Exception {
+            return generateMigration(description, "update");
         }
     }
 }
