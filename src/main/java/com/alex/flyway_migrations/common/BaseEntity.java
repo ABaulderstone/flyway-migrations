@@ -1,5 +1,5 @@
+package com.alex.flyway_migrations.common;
 
-import java.time.LocalDate;
 import java.util.Date;
 
 import jakarta.persistence.Column;
